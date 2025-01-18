@@ -3,6 +3,7 @@ import logging
 import threading
 import queue
 import time
+from queue_rows import *
 
 
 # tasks_queue contains tasks/commands to be executed by the MachineController
@@ -18,13 +19,11 @@ class MachineController(threading.Thread):
 
         self.running = True
 
-
     def run(self):
         logging.info("Starting")
         while self.running:
-            for task in iter(self.tasks_queue.get, None):
+            for task in queue_rows(self.tasks_queue):
                 self.handle_task(task)
-
 
     def handle_task(self, task):
         logging.debug("Task: {}".format(task))
@@ -33,15 +32,10 @@ class MachineController(threading.Thread):
         if task == "ping":
             self.events_queue.put("pong")
 
-
     def stop(self):
         if self.running:
             logging.info("Machine Controller Stopping")
         self.running = False
-        self.tasks_queue.put(None)
-        self.events_queue.put(None)
-        #self.join()
-
 
     def __del__(self):
         self.stop()
