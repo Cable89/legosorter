@@ -10,7 +10,7 @@ from queue_rows import *
 
 
 class LegoSorter():
-    def __init__(self):
+    def __init__(self, desktopDebug=False):
 
         self.running = False
 
@@ -18,7 +18,7 @@ class LegoSorter():
         self.controller_tasks_queue  = queue.Queue()
         self.controller_events_queue = queue.Queue()
 
-        self.machine_controller = machine_controller.MachineController(self.controller_tasks_queue, self.controller_events_queue)
+        self.machine_controller = machine_controller.MachineController(self.controller_tasks_queue, self.controller_events_queue, desktopDebug=desktopDebug)
         self.machine_controller.name = "Machine Controller"
         
 
@@ -62,10 +62,10 @@ def signal_handler(mc, *args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--loglevel')
+    parser.add_argument('--desktopdebug', action="store_true")
     args = parser.parse_args()
 
-    #loglevel = "INFO"
-    loglevel = "DEBUG"
+    loglevel = "INFO"
     if args.loglevel:
         loglevel = args.loglevel
     getattr(logging, loglevel.upper())
@@ -75,5 +75,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=numeric_level, format='(%(threadName)-10s):%(levelname)-8s: %(message)s')
     logging.info("Loglevel set to: {}".format(loglevel))
 
-    legosorter = LegoSorter()
+    if args.desktopdebug:
+        logging.info("desktopdebug set, ignoring raspberry pi stuff")
+
+    legosorter = LegoSorter(desktopDebug=args.desktopdebug)
     legosorter.start()
