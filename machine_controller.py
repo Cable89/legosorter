@@ -103,8 +103,19 @@ class MachineController(threading.Thread):
             logging.debug("channel: {}".format(channel))
         else:
             logging.debug("Optoelectrig triggered: Rising")
+    
+    # Does a conveyor object make sense?
+    # Not now but with encoder later?
+    def start_conveyor(self):
+        result = usbrelay_py.board_control(self.boards[1][0], 4, 1)
+        logging.debug(result)
+
+    def stop_conveyor(self):
+        result = usbrelay_py.board_control(self.boards[1][0], 4, 0)
+        logging.debug(result)
 
     def stop(self):
+        self.stop_conveyor()
         if self.running:
             logging.info("Machine Controller Stopping")
         try:
