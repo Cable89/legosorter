@@ -25,6 +25,7 @@ class MachineController(threading.Thread):
 
         try:
             import RPi.GPIO as GPIO
+            self.GPIO = GPIO
 
             GPIO.setmode(GPIO.BCM) # Refer to pins by the pin number in the GPIO port
             #GPIO.setmode(GPIO.BOARD) Refer to pins by the pin numbner on the board header
@@ -55,7 +56,7 @@ class MachineController(threading.Thread):
             self.events_queue.put("pong")
 
     def optoelectric_callback(self, channel):
-        if not GPIO.input(PIN_OPTOELECTRIC):
+        if not self.GPIO.input(PIN_OPTOELECTRIC):
             logging.debug("Optoelectrig triggered: Falling")
             logging.debug("channel: {}".format(channel))
         else:
