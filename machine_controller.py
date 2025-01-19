@@ -119,7 +119,7 @@ class MachineController(threading.Thread):
         if self.running:
             logging.info("Machine Controller Stopping")
         try:
-            GPIO.cleanup()
+            self.GPIO.cleanup()
         except NameError as e: # Don't care about cleanup of GPIO if we don't have the GPIO module
             logging.debug(e)
         self.running = False
