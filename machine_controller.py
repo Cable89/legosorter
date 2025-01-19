@@ -6,6 +6,7 @@ import time
 import sys
 from queue_rows import *
 import usbrelay_py
+import functools.partial
 
 # Pin mapping
 PIN_OPTOELECTRIC = 18 # BCM
@@ -71,13 +72,16 @@ class MachineController(threading.Thread):
         logging.info("Boards: {}".format(boards))
         return boards
 
-    def pulse_pneumatic(self, number):
+    # Duration in seconds (or partial seconds i.e. 0.5)
+    def pulse_pneumatic(self, number, duration):
         result = usbrelay_py.board_control(self.boards[0][0], number, 1)
         logging.debug(result)
-        time.sleep(0.5)
+        timer = threading.Timer(duration, self.pulse_pneumatic_callback, number)
+        timer.start()
+
+    def pulse_pneumatic_callback(self, number):
         result = usbrelay_py.board_control(self.boards[0][0], number, 0)
         logging.debug(result)
-
 
     def run(self):
         logging.info("Starting")
@@ -92,7 +96,7 @@ class MachineController(threading.Thread):
         if task == "ping":
             self.events_queue.put("pong")
         if task == "wololo":
-            self.pulse_pneumatic(1)
+            self.pulse_pneumatic(1, 0.5)
 
     def optoelectric_callback(self, channel):
         if not self.GPIO.input(PIN_OPTOELECTRIC):
