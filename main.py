@@ -39,8 +39,8 @@ class LegoSorter():
         while self.machine_controller.running:
             for event in queue_rows(self.controller_events_queue, timeout=1):
                 logging.info("Event: {}".format(event))
-            time.sleep(10)
-            self.controller_tasks_queue.put("wololo")
+            #time.sleep(10)
+            #self.controller_tasks_queue.put("wololo")
 
     # Do cleanup tasks here
     def stop(self):

@@ -7,8 +7,17 @@ import sys
 from queue_rows import *
 import usbrelay_py
 
+# Timings in seconds
+TIME_BIN1 = 0.5
+TIME_BIN2 = 0.9
+TIME_BIN3 = 1.5
+TIME_BIN4 = 2
+TIME_BIN5 = 2.5
+
+
 # Pin mapping
-PIN_OPTOELECTRIC = 18 # BCM
+PIN_OPTOELECTRIC = 24 # BCM
+PIN_BUTTON = 27 # BCM
 
 # USB relay boards
 
@@ -37,6 +46,7 @@ class MachineController(threading.Thread):
         self.events_queue = events_queue
 
         self.running = True
+        self.conveyor_running = False
 
         try:
             import RPi.GPIO as GPIO
@@ -44,9 +54,11 @@ class MachineController(threading.Thread):
 
             GPIO.setmode(GPIO.BCM) # Refer to pins by the pin number in the GPIO port
             #GPIO.setmode(GPIO.BOARD) Refer to pins by the pin numbner on the board header
-            GPIO.setup(PIN_OPTOELECTRIC, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.setup(PIN_OPTOELECTRIC, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+            GPIO.setup(PIN_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-            GPIO.add_event_detect(PIN_OPTOELECTRIC, GPIO.FALLING, callback=self.optoelectric_callback, bouncetime=200)
+            GPIO.add_event_detect(PIN_OPTOELECTRIC, GPIO.FALLING, callback=self.optoelectric_callback, bouncetime=500)
+            GPIO.add_event_detect(PIN_BUTTON, GPIO.FALLING, callback=self.button_callback, bouncetime=200)
 
         except ModuleNotFoundError:
             logging.error("Module RPi.GPIO not found. Install via 'pip install RPi.GPIO'")
@@ -75,15 +87,15 @@ class MachineController(threading.Thread):
         return boards
 
     # Duration in seconds (or partial seconds i.e. 0.5)
-    def pulse_pneumatic(self, number, duration):
+    def pulse_pneumatic(self, number, duration=0.2):
         result = usbrelay_py.board_control(self.boards[0][0], number, 1)
-        logging.debug(result)
+        #logging.debug(result)
         timer = threading.Timer(duration, self.pulse_pneumatic_callback, [number])
         timer.start()
 
     def pulse_pneumatic_callback(self, number):
         result = usbrelay_py.board_control(self.boards[0][0], number, 0)
-        logging.debug(result)
+        #logging.debug(result)
 
     def run(self):
         logging.info("Starting")
@@ -102,10 +114,21 @@ class MachineController(threading.Thread):
 
     def optoelectric_callback(self, channel):
         if not self.GPIO.input(PIN_OPTOELECTRIC):
-            logging.debug("Optoelectrig triggered: Falling")
-            logging.debug("channel: {}".format(channel))
-        else:
-            logging.debug("Optoelectrig triggered: Rising")
+            #logging.debug("Optoelectrig triggered: Falling")
+            timer = threading.Timer(TIME_BIN2, self.pulse_pneumatic, [1])
+            timer.start()
+        #else:
+            #logging.debug("Optoelectrig triggered: Rising")
+
+    def button_callback(self, channel):
+        if not self.GPIO.input(PIN_BUTTON):
+            logging.debug("Button pressed")
+            if self.conveyor_running:
+                self.stop_conveyor()
+            else:
+                self.start_conveyor()
+        #else:
+            #logging.debug("Button released")
     
     # Does a conveyor object make sense?
     # Not now but with encoder later?
@@ -114,12 +137,14 @@ class MachineController(threading.Thread):
         #result = usbrelay_py.board_control(self.boards[1][0], 4, 1)
         result = usbrelay_py.board_control("/dev/usbrelay1-1.4", 4, 1)
         logging.debug(result)
+        self.conveyor_running = True
 
     def stop_conveyor(self):
         logging.info("Stopping Conveyor")
         result = usbrelay_py.board_control(self.boards[1][0], 4, 0)
         result = usbrelay_py.board_control("/dev/usbrelay1-1.4", 4, 0)
         logging.debug(result)
+        self.conveyor_running = False
 
     def stop(self):
         self.stop_conveyor()
