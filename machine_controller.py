@@ -6,7 +6,6 @@ import time
 import sys
 from queue_rows import *
 import usbrelay_py
-import functools.partial
 
 # Pin mapping
 PIN_OPTOELECTRIC = 18 # BCM
@@ -76,7 +75,7 @@ class MachineController(threading.Thread):
     def pulse_pneumatic(self, number, duration):
         result = usbrelay_py.board_control(self.boards[0][0], number, 1)
         logging.debug(result)
-        timer = threading.Timer(duration, self.pulse_pneumatic_callback, number)
+        timer = threading.Timer(duration, self.pulse_pneumatic_callback, [number])
         timer.start()
 
     def pulse_pneumatic_callback(self, number):
