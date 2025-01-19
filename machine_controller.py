@@ -19,10 +19,10 @@ PIN_OPTOELECTRIC = 18 # BCM
 # usbrelay1-1.3_4 # Pneumatic 4
 
 # usbrelay1-1.4 # Bottom right relay board
-# usbrelay1-1.4_1 Pneumatic 1
-# usbrelay1-1.4_2 Pneumatic 2
-# usbrelay1-1.4_3 Pneumatic 3
-# usbrelay1-1.4_4 Pneumatic 4
+# usbrelay1-1.4_1 Pneumatic 5
+# usbrelay1-1.4_2 Pneumatic 6
+# usbrelay1-1.4_3 Pneumatic 7
+# usbrelay1-1.4_4 Conveyor belt
 
 # tasks_queue contains tasks/commands to be executed by the MachineController
 # events_queue contains events/messages/responses from the MachineController
@@ -60,10 +60,13 @@ class MachineController(threading.Thread):
             self.boards = self.init_usbrelay()
         except:
             self.stop()
+        
+        self.start_conveyor()
    
    # Relay boards are using same COM string, python library cannot take path?, edit library to take path? (c library works with path)
    # Relay objects are unique, keep track of them myself?
    # Expose path in python?
+   # Path can be used with no modifications to driver
     def init_usbrelay(self):
         count = usbrelay_py.board_count()
         logging.info("Found {} usb relay boards".format(count))
@@ -107,11 +110,15 @@ class MachineController(threading.Thread):
     # Does a conveyor object make sense?
     # Not now but with encoder later?
     def start_conveyor(self):
-        result = usbrelay_py.board_control(self.boards[1][0], 4, 1)
+        logging.info("Starting Conveyor")
+        #result = usbrelay_py.board_control(self.boards[1][0], 4, 1)
+        result = usbrelay_py.board_control("/dev/usbrelay1-1.4", 4, 1)
         logging.debug(result)
 
     def stop_conveyor(self):
+        logging.info("Stopping Conveyor")
         result = usbrelay_py.board_control(self.boards[1][0], 4, 0)
+        result = usbrelay_py.board_control("/dev/usbrelay1-1.4", 4, 0)
         logging.debug(result)
 
     def stop(self):
