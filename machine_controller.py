@@ -54,9 +54,10 @@ class MachineController(threading.Thread):
         if task == "ping":
             self.events_queue.put("pong")
 
-    def optoelectric_callback(self):
+    def optoelectric_callback(self, channel):
         if not GPIO.input(PIN_OPTOELECTRIC):
             logging.debug("Optoelectrig triggered: Falling")
+            logging.debug("channel: {}".format(channel))
         else:
             logging.debug("Optoelectrig triggered: Rising")
 
