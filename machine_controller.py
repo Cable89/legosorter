@@ -5,9 +5,24 @@ import queue
 import time
 import sys
 from queue_rows import *
+import usbrelay_py
 
 # Pin mapping
 PIN_OPTOELECTRIC = 18 # BCM
+
+# USB relay boards
+
+# usbrelay1-1.3 # Top right relay board
+# usbrelay1-1.3_1 # Pneumatic 1
+# usbrelay1-1.3_2 # Pneumatic 2
+# usbrelay1-1.3_3 # Pneumatic 3
+# usbrelay1-1.3_4 # Pneumatic 4
+
+# usbrelay1-1.4 # Bottom right relay board
+# usbrelay1-1.4_1 Pneumatic 1
+# usbrelay1-1.4_2 Pneumatic 2
+# usbrelay1-1.4_3 Pneumatic 3
+# usbrelay1-1.4_4 Pneumatic 4
 
 # tasks_queue contains tasks/commands to be executed by the MachineController
 # events_queue contains events/messages/responses from the MachineController
@@ -31,7 +46,7 @@ class MachineController(threading.Thread):
             #GPIO.setmode(GPIO.BOARD) Refer to pins by the pin numbner on the board header
             GPIO.setup(PIN_OPTOELECTRIC, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-            GPIO.add_event_detect(PIN_OPTOELECTRIC, GPIO.FALLING, callback=self.optoelectric_callback, bouncetime=50)
+            GPIO.add_event_detect(PIN_OPTOELECTRIC, GPIO.FALLING, callback=self.optoelectric_callback, bouncetime=200)
 
         except ModuleNotFoundError:
             logging.error("Module RPi.GPIO not found. Install via 'pip install RPi.GPIO'")
@@ -41,6 +56,28 @@ class MachineController(threading.Thread):
                 #sys.exit(1)
             else:
                 logging.info("Continuing anyway")
+        try:
+            self.boards = self.init_usbrelay()
+        except:
+            self.stop()
+   
+   # Relay boards are using same COM string, python library cannot take path?, edit library to take path? (c library works with path)
+   # Relay objects are unique, keep track of them myself?
+   # Expose path in python?
+    def init_usbrelay(self):
+        count = usbrelay_py.board_count()
+        logging.info("Found {} usb relay boards".format(count))
+        boards = usbrelay_py.board_details()
+        logging.info("Boards: {}".format(boards))
+        return boards
+
+    def pulse_pneumatic(self, number):
+        result = usbrelay_py.board_control(self.boards[0][0], number, 1)
+        logging.debug(result)
+        time.sleep(0.5)
+        result = usbrelay_py.board_control(self.boards[0][0], number, 0)
+        logging.debug(result)
+
 
     def run(self):
         logging.info("Starting")
@@ -54,6 +91,8 @@ class MachineController(threading.Thread):
             self.stop()
         if task == "ping":
             self.events_queue.put("pong")
+        if task == "wololo":
+            self.pulse_pneumatic(1)
 
     def optoelectric_callback(self, channel):
         if not self.GPIO.input(PIN_OPTOELECTRIC):
